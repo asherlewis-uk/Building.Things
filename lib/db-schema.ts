@@ -30,7 +30,10 @@ function splitPathExtension(pathValue: string) {
   };
 }
 
-function buildUniqueStoredPath(existingPaths: Set<string>, desiredPath: string) {
+function buildUniqueStoredPath(
+  existingPaths: Set<string>,
+  desiredPath: string,
+) {
   const normalizedDesiredPath =
     normalizeStoredPath(desiredPath) || "untitled.txt";
 
@@ -56,7 +59,9 @@ async function ensureColumn(
   columnName: string,
   definition: string,
 ) {
-  const columns = await db.all<TableInfoRow[]>(`PRAGMA table_info(${tableName})`);
+  const columns = await db.all<TableInfoRow[]>(
+    `PRAGMA table_info(${tableName})`,
+  );
   const hasColumn = columns.some((column) => column.name === columnName);
 
   if (!hasColumn) {
@@ -196,12 +201,14 @@ export async function initDb(db: Database) {
       endpoint TEXT,
       command TEXT,
       auth_mode TEXT NOT NULL,
+      auth_config_json TEXT NOT NULL DEFAULT '{}',
       enabled INTEGER NOT NULL DEFAULT 1,
       status TEXT NOT NULL DEFAULT 'unconfigured',
       tool_count INTEGER NOT NULL DEFAULT 0,
       declared_tools_json TEXT,
       last_checked_at TEXT,
       last_error TEXT,
+      warnings_json TEXT NOT NULL DEFAULT '[]',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY(workspace_id) REFERENCES workspaces(id)
@@ -223,6 +230,18 @@ export async function initDb(db: Database) {
   await ensureColumn(db, "deployments", "updated_at", "TEXT");
   await ensureColumn(db, "deployments", "summary", "TEXT");
   await ensureColumn(db, "deployments", "logs_json", "TEXT");
+  await ensureColumn(
+    db,
+    "mcp_servers",
+    "auth_config_json",
+    "TEXT NOT NULL DEFAULT '{}'",
+  );
+  await ensureColumn(
+    db,
+    "mcp_servers",
+    "warnings_json",
+    "TEXT NOT NULL DEFAULT '[]'",
+  );
 
   const now = new Date().toISOString();
 
@@ -245,6 +264,12 @@ export async function initDb(db: Database) {
   );
   await db.run(
     "UPDATE deployments SET logs_json = COALESCE(logs_json, '[]') WHERE logs_json IS NULL OR TRIM(logs_json) = ''",
+  );
+  await db.run(
+    "UPDATE mcp_servers SET auth_config_json = COALESCE(auth_config_json, '{}') WHERE auth_config_json IS NULL OR TRIM(auth_config_json) = ''",
+  );
+  await db.run(
+    "UPDATE mcp_servers SET warnings_json = COALESCE(warnings_json, '[]') WHERE warnings_json IS NULL OR TRIM(warnings_json) = ''",
   );
 
   await normalizeExistingFiles(db);

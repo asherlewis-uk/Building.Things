@@ -128,6 +128,20 @@ export type PanelDensity = "compact" | "comfortable";
 
 export type AssistantResponseStyle = "concise" | "balanced" | "detailed";
 
+export type AiProviderId =
+  | "local-stub"
+  | "anthropic"
+  | "gemini"
+  | "openai"
+  | "ollama";
+
+export type ProviderStatus =
+  | "disabled"
+  | "unconfigured"
+  | "configured"
+  | "ready"
+  | "error";
+
 export interface AppSettings {
   default_mode: SessionMode;
   panel_density: PanelDensity;
@@ -136,6 +150,11 @@ export interface AppSettings {
   deploy_target: string;
   terminal_start_directory: string;
   assistant_response_style: AssistantResponseStyle;
+  accent_color?: string | null;
+  auto_artifact_snapshots?: boolean | null;
+  provider?: AiProviderId | null;
+  provider_model?: string | null;
+  provider_base_url?: string | null;
 }
 
 export interface WorkspaceSettings {
@@ -148,11 +167,17 @@ export interface WorkspaceSettings {
   assistant_response_style: AssistantResponseStyle | null;
   accent_color: string | null;
   auto_artifact_snapshots: boolean | null;
+  provider?: AiProviderId | null;
+  provider_model?: string | null;
+  provider_base_url?: string | null;
 }
 
 export interface EffectiveWorkspaceConfig extends AppSettings {
   accent_color: string;
   auto_artifact_snapshots: boolean;
+  provider?: AiProviderId | null;
+  provider_model?: string | null;
+  provider_base_url?: string | null;
 }
 
 export interface EnvironmentStatus {
@@ -160,7 +185,8 @@ export interface EnvironmentStatus {
   app_url_valid: boolean;
   disable_hmr: boolean;
   providers_enabled: boolean;
-  provider_status: "disabled";
+  provider_status: ProviderStatus;
+  provider?: AiProviderId | null;
   warnings: string[];
 }
 
@@ -177,6 +203,12 @@ export type McpAuthMode = "none" | "bearer" | "header";
 
 export type McpStatus = "disabled" | "unconfigured" | "offline" | "ready";
 
+export interface McpAuthConfig {
+  bearer_token?: string | null;
+  header_name?: string | null;
+  header_value?: string | null;
+}
+
 export interface McpServer {
   id: string;
   workspace_id: string;
@@ -185,12 +217,14 @@ export interface McpServer {
   endpoint: string | null;
   command: string | null;
   auth_mode: McpAuthMode;
+  auth_config_json?: string | null;
   enabled: boolean;
   status: McpStatus;
   tool_count: number;
   declared_tools_json: string | null;
   last_checked_at: string | null;
   last_error: string | null;
+  warnings_json?: string | null;
   created_at: string;
   updated_at: string;
 }
