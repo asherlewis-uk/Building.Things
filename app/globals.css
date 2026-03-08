@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+:root {
+  /* Base Layer */
+  --bg-app: #0a0a0c; /* bg-zinc-950 */
+  --bg-panel: #18181b; /* bg-zinc-900 */
+  --bg-surface: #27272a; /* bg-zinc-800 */
+  
+  /* Text */
+  --text-primary: #f4f4f5; /* text-zinc-100 */
+  --text-secondary: #a1a1aa; /* text-zinc-400 */
+  --text-tertiary: #71717a; /* text-zinc-500 */
+
+  /* Borders */
+  --border-panel: #27272a; /* border-zinc-800 */
+  
+  /* Status */
+  --status-success: #10b981;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-info: #3b82f6;
+
+  /* Brand */
+  --brand-primary: #1E1F23;
+  --brand-secondary: #F6FF00;
+  --brand-accent: #F6FF00; /* Using secondary as the main pop color since primary is dark */
+}
+
+@layer base {
+  * {
+    @apply border-zinc-800;
+  }
+  body {
+    @apply bg-zinc-950 text-zinc-100;
+  }
+}
+
+@layer utilities {
+  .text-brand-accent {
+    color: var(--brand-accent);
+  }
+  .bg-brand-accent {
+    background-color: var(--brand-accent);
+  }
+  .border-brand-accent {
+    border-color: var(--brand-accent);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 5px;
+  border: 2px solid #0a0a0c;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}

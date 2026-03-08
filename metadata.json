@@ -1,0 +1,5 @@
+{
+  "name": "Building.Things",
+  "description": "A high-fidelity AI-native IDE workspace interface with dual-mode interaction, multi-file autonomous execution, and real-time flow awareness.",
+  "requestFramePermissions": []
+}
