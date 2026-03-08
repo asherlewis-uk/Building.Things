@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseRequestJson, toErrorResponse } from "@/lib/api";
-import { createFile, listFiles } from "@/lib/services/files";
+import { createMcpServer, listMcpServers } from "@/lib/services/mcp";
 import { resolveWorkspaceId } from "@/lib/services/workspaces";
 
-type CreateFileBody = {
+type CreateMcpBody = {
   workspace_id?: unknown;
   name?: unknown;
-  path?: unknown;
-  content?: unknown;
-  type?: unknown;
+  transport_type?: unknown;
+  endpoint?: unknown;
+  command?: unknown;
+  auth_mode?: unknown;
+  enabled?: unknown;
+  declared_tools?: unknown;
 };
 
 export async function GET(req: NextRequest) {
@@ -16,29 +19,28 @@ export async function GET(req: NextRequest) {
     const workspaceId = await resolveWorkspaceId(
       req.nextUrl.searchParams.get("workspace_id") ?? "active",
     );
-    const files = await listFiles(workspaceId);
-    return NextResponse.json(files);
+    const servers = await listMcpServers(workspaceId);
+    return NextResponse.json(servers);
   } catch (error) {
-    return toErrorResponse(error, "Failed to load files");
+    return toErrorResponse(error, "Failed to load MCP servers");
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const parsedBody = await parseRequestJson<CreateFileBody>(req);
+    const parsedBody = await parseRequestJson<CreateMcpBody>(req);
 
     if (!parsedBody.success) {
       return parsedBody.response;
     }
 
     const workspaceId = await resolveWorkspaceId(parsedBody.data.workspace_id);
-    const file = await createFile({
+    const server = await createMcpServer({
       ...parsedBody.data,
       workspace_id: workspaceId,
     });
-
-    return NextResponse.json(file, { status: 201 });
+    return NextResponse.json(server, { status: 201 });
   } catch (error) {
-    return toErrorResponse(error, "Failed to create file");
+    return toErrorResponse(error, "Failed to create MCP server");
   }
 }

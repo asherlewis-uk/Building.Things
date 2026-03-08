@@ -1,5 +1,6 @@
-import { buildStubAssistantReply, createTextStream } from "@/lib/ai-stub";
 import { parseRequestJson, toErrorResponse } from "@/lib/api";
+import { buildChatAssistantReply } from "@/lib/services/assistant";
+import type { Session } from "@/lib/types";
 
 type ChatRequestBody = {
   messages?: Array<{
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
       return parsedBody.response;
     }
 
-    const { messages, system } = parsedBody.data;
+    const { messages } = parsedBody.data;
 
     if (!messages || !Array.isArray(messages)) {
       return Response.json(
@@ -26,15 +27,24 @@ export async function POST(req: Request) {
       );
     }
 
-    const text = buildStubAssistantReply(
-      messages.map((message) => ({
+    const assistantResponse = await buildChatAssistantReply({
+      session: {
+        id: "adhoc",
+        workspace_id: "adhoc",
+        title: "Ad hoc Chat",
+        mode: "chat",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        archived_at: null,
+      } satisfies Session,
+      messages: messages.map((message): { role: string; content: unknown } => ({
         role: typeof message.role === "string" ? message.role : "user",
         content: message.content ?? "",
       })),
-      system,
-    );
+      responseStyle: "balanced",
+    });
 
-    return new Response(createTextStream(text), {
+    return new Response(assistantResponse.stream, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "X-AI-Stub": "true",

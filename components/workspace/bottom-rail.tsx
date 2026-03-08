@@ -30,7 +30,8 @@ function buildWelcomeEntries(): TerminalEntry[] {
 }
 
 export function BottomRail() {
-  const { currentSessionId } = useWorkspace();
+  const { currentSessionId, currentWorkspaceId, resolvedConfig } =
+    useWorkspace();
   const [input, setInput] = React.useState("");
   const [historyBySession, setHistoryBySession] = React.useState<
     Record<string, TerminalEntry[]>
@@ -43,9 +44,15 @@ export function BottomRail() {
   const [isRunning, setIsRunning] = React.useState(false);
   const [requestError, setRequestError] = React.useState<string | null>(null);
   const endRef = React.useRef<HTMLDivElement>(null);
-  const sessionKey = currentSessionId ?? "global";
+  const terminalStartDirectory =
+    resolvedConfig?.effective.terminal_start_directory ?? "/";
+  const sessionKey = currentSessionId
+    ? `${currentWorkspaceId ?? "global"}:${currentSessionId}`
+    : currentWorkspaceId
+      ? `workspace:${currentWorkspaceId}`
+      : "global";
   const history = historyBySession[sessionKey] ?? buildWelcomeEntries();
-  const cwd = cwdBySession[sessionKey] ?? "/";
+  const cwd = cwdBySession[sessionKey] ?? terminalStartDirectory;
   const problemCount = history.filter(
     (entry) => entry.type === "stderr",
   ).length;
@@ -69,12 +76,12 @@ export function BottomRail() {
 
       return {
         ...previousState,
-        [sessionKey]: "/",
+        [sessionKey]: terminalStartDirectory,
       };
     });
     setInput("");
     setRequestError(null);
-  }, [sessionKey]);
+  }, [sessionKey, terminalStartDirectory]);
 
   const handleCommand = async (e: React.KeyboardEvent) => {
     if (e.key !== "Enter" || !input.trim() || isRunning) {
@@ -103,7 +110,12 @@ export function BottomRail() {
       const res = await fetch("/api/terminal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command, cwd, sessionId: currentSessionId }),
+        body: JSON.stringify({
+          command,
+          cwd,
+          sessionId: sessionKey,
+          workspace_id: currentWorkspaceId,
+        }),
       });
       const data = await readJsonResponse<TerminalResponse>(res);
 

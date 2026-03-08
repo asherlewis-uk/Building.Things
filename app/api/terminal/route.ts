@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { parseRequestJson, toErrorResponse } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { executeTerminalCommand } from "@/lib/terminal";
+import { resolveWorkspaceId } from "@/lib/services/workspaces";
 import type { FileRecord } from "@/lib/types";
 
 type TerminalRequestBody = {
   command?: unknown;
   cwd?: unknown;
   sessionId?: unknown;
+  workspace_id?: unknown;
 };
 
 export async function POST(req: Request) {
@@ -30,10 +32,14 @@ export async function POST(req: Request) {
       );
     }
 
+    const workspaceId = await resolveWorkspaceId(parsedBody.data.workspace_id);
     const db = await getDb();
     const files = await db.all<
       Array<Pick<FileRecord, "name" | "path" | "content">>
-    >("SELECT name, path, content FROM files ORDER BY path ASC");
+    >(
+      "SELECT name, path, content FROM files WHERE workspace_id = ? ORDER BY path ASC",
+      [workspaceId],
+    );
     const response = executeTerminalCommand({
       command,
       cwd: typeof cwd === "string" ? cwd : "/",

@@ -1,25 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { parseRequestJson, toErrorResponse } from "@/lib/api";
 import {
-  ApiRouteError,
-  parseRequestJson,
-  toErrorResponse,
-  trimString,
-} from "@/lib/api";
-import { getDb, getDefaultWorkspaceId } from "@/lib/db";
-import type { Session } from "@/lib/types";
-import { v4 as uuidv4 } from "uuid";
+  createSession,
+  listSessions,
+  resolveWorkspaceId,
+} from "@/lib/services/workspaces";
 
 type CreateSessionBody = {
   title?: unknown;
   workspace_id?: unknown;
+  mode?: unknown;
 };
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const db = await getDb();
-    const sessions = await db.all<Session[]>(
-      "SELECT * FROM sessions ORDER BY updated_at DESC, created_at DESC",
+    const workspaceId = await resolveWorkspaceId(
+      req.nextUrl.searchParams.get("workspace_id") ?? "active",
     );
+    const includeArchived =
+      req.nextUrl.searchParams.get("include_archived") === "1";
+    const sessions = await listSessions(workspaceId, {
+      includeArchived,
+    });
+
     return NextResponse.json(sessions);
   } catch (error) {
     return toErrorResponse(error, "Failed to load sessions");
@@ -34,57 +37,9 @@ export async function POST(req: Request) {
       return parsedBody.response;
     }
 
-    const { title, workspace_id } = parsedBody.data;
-    const db = await getDb();
-    const resolvedTitle = trimString(title) ?? "New Session";
+    const session = await createSession(parsedBody.data);
 
-    if (resolvedTitle.length > 120) {
-      throw new ApiRouteError("Invalid session payload", 400, undefined, {
-        title: "Title must be 120 characters or fewer.",
-      });
-    }
-
-    let resolvedWorkspaceId = await getDefaultWorkspaceId();
-
-    if (typeof workspace_id === "string" && workspace_id !== "default") {
-      const workspace = await db.get<{ id: string }>(
-        "SELECT id FROM workspaces WHERE id = ?",
-        [workspace_id],
-      );
-
-      if (!workspace?.id) {
-        throw new ApiRouteError("Workspace not found", 404);
-      }
-
-      resolvedWorkspaceId = workspace.id;
-    } else if (
-      workspace_id !== undefined &&
-      workspace_id !== null &&
-      workspace_id !== "default"
-    ) {
-      throw new ApiRouteError("Invalid session payload", 400, undefined, {
-        workspace_id: "Workspace id must be a string.",
-      });
-    }
-
-    const id = uuidv4();
-    const created_at = new Date().toISOString();
-
-    await db.run(
-      "INSERT INTO sessions (id, workspace_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-      [id, resolvedWorkspaceId, resolvedTitle, created_at, created_at],
-    );
-
-    return NextResponse.json(
-      {
-        id,
-        workspace_id: resolvedWorkspaceId,
-        title: resolvedTitle,
-        created_at,
-        updated_at: created_at,
-      } satisfies Session,
-      { status: 201 },
-    );
+    return NextResponse.json(session, { status: 201 });
   } catch (error) {
     return toErrorResponse(error, "Failed to create session");
   }
